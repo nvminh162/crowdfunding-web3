@@ -1,2 +1,1 @@
-# web3-solidity-bootcamp
-Web3 Development with Solidity
+# Web3 Development with Solidity
