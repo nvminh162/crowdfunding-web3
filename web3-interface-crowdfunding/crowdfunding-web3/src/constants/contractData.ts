@@ -1,4 +1,4 @@
-export const contractAddress = "0x940f0995c0Ef0AFAEE8654435A08Dd89941336B6";
+export const contractAddress = "0x8482847083a8e46F54283f89aaf386a304B32ec7";
 
 export const shortenAddr = (addr: string) => {
   if (!addr) return "";
