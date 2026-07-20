@@ -18,10 +18,10 @@ export default function App() {
   // Format địa chỉ ví dạng 0x402c...CE32 khi đã kết nối
   const formattedAddress = address ? shortenAddr(address) : "";
 
-  // Format số dư dạng "3.417 SepoliaETH" dùng formatEther từ viem
-  const formattedBalance = balanceData
-    ? `${parseFloat(formatEther(balanceData.value)).toFixed(3)} ${balanceData.symbol}`
-    : "";
+  // Format số dư cho thẻ Total amount funding
+  const fundingAmount = balanceData
+    ? parseFloat(formatEther(balanceData.value)).toFixed(3)
+    : "unknown";
 
   return (
     <div className="min-h-screen bg-[#ffffff] text-[#0b0f19] font-['Inter',sans-serif] px-6 py-8 sm:px-12 sm:py-10">
@@ -46,13 +46,8 @@ export default function App() {
             </a>
           </div>
 
-          {/* Right: Wallet Button & Balance */}
-          <div className="flex items-center gap-3">
-            {isConnected && formattedBalance && (
-              <span className="text-xs font-semibold bg-slate-100 px-3 py-1.5 rounded-lg text-slate-700">
-                {formattedBalance}
-              </span>
-            )}
+          {/* Right: Wallet Button */}
+          <div>
             <button
               onClick={() => open()}
               className="bg-[#0b0f19] hover:bg-[#1e293b] text-white px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-colors shadow-sm cursor-pointer"
@@ -67,10 +62,18 @@ export default function App() {
           {/* LEFT COLUMN - STATS (4 cols) */}
           <div className="md:col-span-4 flex flex-col gap-3.5">
             {/* Stat Card 1: Total amount funding */}
-            <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.03)] h-[76px] flex flex-col justify-start">
+            <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.03)] min-h-[100px] flex flex-col justify-between">
               <span className="text-xs font-bold text-[#0b0f19]">
                 Total amount funding
               </span>
+              <div className="mt-1.5 flex items-baseline gap-1">
+                <span className="text-xl sm:text-2xl font-extrabold text-[#0b0f19] tracking-tight">
+                  {fundingAmount}
+                </span>
+                <span className="text-sm sm:text-base font-extrabold text-[#0b0f19]">
+                  ETH
+                </span>
+              </div>
             </div>
 
             {/* Stat Card 2: Funders */}
