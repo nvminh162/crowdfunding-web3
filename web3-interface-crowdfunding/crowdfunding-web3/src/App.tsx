@@ -4,11 +4,15 @@ import { formatEther } from "viem";
 import { FiExternalLink } from "react-icons/fi";
 import { HandCoinsIcon } from "./components/HandCoinsIcon";
 import { contractAddress, shortenAddr } from "./constants/contractData";
+import { useGetFundersLength } from "./constants/contractInteractive";
 
 export default function App() {
   // Hook kết nối ví từ Reown AppKit
   const { open } = useAppKit();
   const { address, isConnected } = useAppKitAccount();
+
+  // Hook đọc số lượng Funders từ contract
+  const { data: fundersCount } = useGetFundersLength();
 
   // Hook lấy số dư từ Wagmi
   const { data: balanceData } = useBalance({
@@ -77,8 +81,13 @@ export default function App() {
             </div>
 
             {/* Stat Card 2: Funders */}
-            <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.03)] h-[76px] flex flex-col justify-start">
+            <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.03)] min-h-[76px] flex flex-col justify-between">
               <span className="text-xs font-bold text-[#0b0f19]">Funders</span>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-xl sm:text-2xl font-extrabold text-[#0b0f19] tracking-tight">
+                  {fundersCount != null ? fundersCount.toString() : "0"}
+                </span>
+              </div>
             </div>
           </div>
 
