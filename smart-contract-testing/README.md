@@ -4,3 +4,5 @@ forge remappings
 
 forge test
 forge test -vv
+
+## note: chưa học xong testing trong smart contact
