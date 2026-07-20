@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.45;
+pragma solidity ^0.8.35;
 
 import {PriceConverter} from "./lib/PriceConverter.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
