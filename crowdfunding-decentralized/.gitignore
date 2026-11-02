@@ -2,15 +2,15 @@
 cache/
 out/
 
-# Ignores development broadcast logs
-!/broadcast
+# Broadcast: keep optional Sepolia history; drop local Anvil + dry-runs
 /broadcast/*/31337/
 /broadcast/**/dry-run/
 
 # Docs
 docs/
 
-# Dotenv file
+# Secrets
 .env
 
+# Installed via forge install (see root README)
 lib/

@@ -1,74 +1,136 @@
 # Crowdfunding Web3
 
-Dự án crowdfunding on-chain: smart contract (Foundry) + frontend (React + Vite + ethers + Web3Modal).
+> **Languages:** English (this file) · [Tiếng Việt](./README.vi.md)
 
-Người dùng donate ETH (tối thiểu ~**$5 USD**, giá qua Chainlink ETH/USD). Owner rút toàn bộ số dư bằng `withdraw()`.
+Ethereum Sepolia crowdfunding dApp: Solidity contracts (Foundry) + React frontend (Vite, ethers, Web3Modal).
 
-| Package | Vai trò |
+Donors send ETH into an on-chain vault (minimum ≈ **$5 USD** via Chainlink ETH/USD). Only the **owner** (deployer wallet) can `withdraw()`.
+
+| Package | Role |
 |---|---|
-| `crowdfunding-decentralized/` | Smart contract + deploy/test (Foundry) |
-| `crowdfunding-interface/` | UI kết nối ví, donate trên **Sepolia** |
+| `crowdfunding-decentralized/` | Smart contract, tests, Sepolia deploy |
+| `crowdfunding-interface/` | Web UI (connect wallet, fund, list donations) |
 
-Price feed Sepolia (HelperConfig): Chainlink ETH/USD `0x694AA1769357215DE4FAC081bf1f309aDC325306`.
+**Current Sepolia deployment (reference):**  
+[`0xaF82203926E6c7D28ac30fDf98C98F47F925B5d2`](https://sepolia.etherscan.io/address/0xaF82203926E6c7D28ac30fDf98C98F47F925B5d2)
 
-> Repo đã được **clean** (xoá `broadcast/` deploy cũ, reset `contractAddr`). Sau khi `make deploy ARGS="--network sepolia"`, copy address mới vào `crowdfunding-interface/src/contracts/contractData.ts`.
->
-> Frontend hiện **chỉ cấu hình Sepolia**, không kết nối Anvil. Local Anvil dùng để build/test/deploy contract bằng CLI.
-
----
-
-## Mục lục
-
-1. [Yêu cầu hệ thống](#1-yêu-cầu-hệ-thống)
-2. [Clone & cài dependency](#2-clone--cài-dependency)
-3. [Local: Anvil + deploy + test](#3-local-anvil--deploy--test)
-4. [Chuẩn bị Sepolia (testnet)](#4-chuẩn-bị-sepolia-testnet)
-5. [Deploy contract lên Sepolia](#5-deploy-contract-lên-sepolia)
-6. [Chạy frontend](#6-chạy-frontend)
-7. [Nối frontend với contract mới](#7-nối-frontend-với-contract-mới)
-8. [Tương tác sau khi deploy](#8-tương-tác-sau-khi-deploy)
-9. [Checklist zero → production (testnet)](#9-checklist-zero--production-testnet)
-10. [Troubleshooting](#10-troubleshooting)
+This guide is **Sepolia-only**. You do **not** need Anvil / local chain to redeploy years later.
 
 ---
 
-## 1. Yêu cầu hệ thống
+## Table of contents
 
-Cài trước khi bắt đầu:
+1. [What you need](#1-what-you-need)
+2. [Accounts & websites (step by step)](#2-accounts--websites-step-by-step)
+3. [Install tools on your PC](#3-install-tools-on-your-pc)
+4. [Install project dependencies](#4-install-project-dependencies)
+5. [Configure contract `.env`](#5-configure-contract-env)
+6. [Import MetaMask key into Foundry](#6-import-metamask-key-into-foundry)
+7. [Deploy to Sepolia](#7-deploy-to-sepolia)
+8. [Wire the frontend](#8-wire-the-frontend)
+9. [Run the website](#9-run-the-website)
+10. [Optional: fund / withdraw via CLI](#10-optional-fund--withdraw-via-cli)
+11. [Redeploy checklist (future you)](#11-redeploy-checklist-future-you)
+12. [Troubleshooting](#12-troubleshooting)
 
-| Tool | Mục đích | Gợi ý |
-|---|---|---|
-| [Foundry](https://book.getfoundry.sh/getting-started/installation) | `forge`, `cast`, `anvil` | `curl -L https://foundry.paradigm.xyz \| bash` rồi `foundryup` |
-| [Node.js](https://nodejs.org/) 18+ | Frontend | LTS |
-| [pnpm](https://pnpm.io/) | Package manager frontend | `npm i -g pnpm` |
-| [MetaMask](https://metamask.io/) | Ví browser | Thêm mạng Sepolia |
-| Make | Chạy lệnh trong `makefile` | Windows: Git Bash / WSL / `choco install make` |
+---
 
-Kiểm tra nhanh:
+## 1. What you need
 
-```bash
+| Item | Purpose |
+|---|---|
+| [Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge`, `cast`) | Build, test, deploy contracts |
+| Node.js 18+ and [pnpm](https://pnpm.io/) | Frontend |
+| [MetaMask](https://metamask.io/) | Wallet on **Sepolia** |
+| Sepolia ETH | Pay gas + donations (from a faucet) |
+| [Alchemy](https://www.alchemy.com/) app | Sepolia HTTPS RPC + API key |
+| [Etherscan](https://etherscan.io/apis) API key | Verify source on explorer |
+| [Reown / WalletConnect](https://dashboard.reown.com/) Project ID | Web3Modal “Connect wallet” |
+
+---
+
+## 2. Accounts & websites (step by step)
+
+### 2.1 MetaMask + Sepolia network
+
+1. Install MetaMask (browser extension).
+2. Create / unlock a wallet. Prefer a **test-only** account (never reuse a mainnet cold wallet for tutorials).
+3. Add / switch network to **Sepolia** (Chain ID `11155111`).
+4. Copy your address (e.g. `0x402c…`).
+
+### 2.2 Get Sepolia ETH
+
+1. Open a Sepolia faucet (search “Sepolia faucet”; options change over time).
+2. Request test ETH to your MetaMask Sepolia address.
+3. Confirm balance in MetaMask (Sepolia network).
+
+### 2.3 Alchemy (RPC)
+
+1. Go to [https://dashboard.alchemy.com](https://dashboard.alchemy.com) → sign up / log in.
+2. **Create App** → Network: **Ethereum Sepolia**.
+3. Open the app → copy:
+   - **API Key** (short string)
+   - **HTTPS URL**: `https://eth-sepolia.g.alchemy.com/v2/<API_KEY>`
+
+### 2.4 Etherscan API key
+
+1. Go to [https://etherscan.io/apis](https://etherscan.io/apis) (same key works for Sepolia explorer verification via Foundry).
+2. Sign in → create an API key → copy it.
+
+### 2.5 Reown (WalletConnect) Project ID
+
+1. Go to [https://dashboard.reown.com](https://dashboard.reown.com) → sign in.
+2. Create a project (e.g. name `crowdfunding`).
+3. Copy **Project ID** (used only by the frontend Web3Modal; it is **not** a wallet and holds no funds).
+
+### 2.6 Export MetaMask private key (for Foundry deploy)
+
+1. MetaMask → select the Sepolia account that has ETH.
+2. ⋮ / Account details → **Show private key** → enter MetaMask password → copy.
+3. Use this **only** in `cast wallet import` on your machine. Never commit it, never paste it into chat/GitHub.
+
+---
+
+## 3. Install tools on your PC
+
+### Foundry (Windows)
+
+```powershell
+# If already installed under %USERPROFILE%\.foundry\bin but missing from PATH:
+# add C:\Users\<YOU>\.foundry\bin to User PATH, then open a new terminal.
+
 forge --version
-anvil --version
+cast --version
+```
+
+Install / update: [Foundry book — Installation](https://book.getfoundry.sh/getting-started/installation) (`foundryup`).
+
+### Node + pnpm
+
+```powershell
 node -v
+npm i -g pnpm
 pnpm -v
 ```
 
----
+### Make (used by `makefile`)
 
-## 2. Clone & cài dependency
+Windows: `scoop install make`, or Git Bash / WSL.
 
-```bash
-cd crowdfunding-web3
+```powershell
+make --version
 ```
 
-### Smart contract (Foundry)
+---
 
-Thư mục `lib/` (forge-std, chainlink, openzeppelin, foundry-devops) là **git submodules** — cần install trước khi build:
+## 4. Install project dependencies
 
-```bash
+### 4.1 Smart contracts
+
+```powershell
 cd crowdfunding-decentralized
 
-# Nếu thư mục lib/ trống (submodule chưa pull), cài lại dependencies:
+# If lib/ folders are empty or missing:
 forge install foundry-rs/forge-std@v1.9.2 --no-git --shallow
 forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-git --shallow
 forge install Cyfrin/foundry-devops@0.2.2 --no-git --shallow
@@ -78,309 +140,229 @@ forge build
 forge test
 ```
 
-> Dùng `chainlink-brownie-contracts` (nhẹ) thay vì monorepo `smartcontractkit/chainlink` đầy đủ; remapping `@chainlink/=lib/chainlink/` vẫn khớp import hiện tại.
+> If `forge install` says the destination already exists and is not empty, skip that package — it is already installed.
 
-### Frontend
+### 4.2 Frontend
 
-```bash
+```powershell
 cd crowdfunding-interface
 pnpm install
 ```
 
 ---
 
-## 3. Local: Anvil + deploy + test
+## 5. Configure contract `.env`
 
-### 3.1 Chạy test (không cần Anvil)
-
-```bash
+```powershell
 cd crowdfunding-decentralized
-forge test -vvv
+copy .env.example .env
 ```
 
-### 3.2 Chạy Anvil (local chain)
-
-Terminal 1:
-
-```bash
-anvil
-```
-
-Anvil mặc định:
-
-- RPC: `http://localhost:8545`
-- Chain ID: `31337`
-- Account #0 private key (để sẵn trong makefile):  
-  `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`
-
-### 3.3 Deploy lên Anvil
-
-Terminal 2 (cùng thư mục `crowdfunding-decentralized`):
-
-```bash
-# Không cần file .env cho local
-make deploy
-```
-
-Script sẽ:
-
-1. Deploy `MockV3Aggregator` (giá ETH giả = $3000)
-2. Deploy `Crowdfunding` trỏ tới mock price feed
-
-Address contract in ra terminal / nằm trong `broadcast/`.
-
-### 3.4 Fund / withdraw trên Anvil
-
-```bash
-make fund      # gửi 0.01 ETH vào contract vừa deploy
-make withdraw # rút (chỉ owner = người deploy)
-```
-
-Các lệnh này dùng `foundry-devops` để lấy **deployment mới nhất** theo `chainId`.
-
----
-
-## 4. Chuẩn bị Sepolia (testnet)
-
-### 4.1 Lấy RPC URL
-
-Tạo app miễn phí tại [Alchemy](https://www.alchemy.com/) hoặc [Infura](https://infura.io/), chọn mạng **Ethereum Sepolia**, copy HTTPS RPC URL.
-
-Ví dụ Alchemy: `https://eth-sepolia.g.alchemy.com/v2/<API_KEY>`
-
-### 4.2 Lấy Etherscan API key
-
-[etherscan.io/apis](https://etherscan.io/apis) — dùng để **verify** contract sau khi deploy.
-
-### 4.3 Ví deploy + ETH testnet
-
-1. Tạo / dùng ví MetaMask (mạng Sepolia).
-2. Nạp Sepolia ETH từ faucet (Google “Sepolia faucet”).
-3. Import private key vào Foundry keystore (an toàn hơn đưa raw key vào `.env`):
-
-```bash
-cast wallet import <TÊN_ACCOUNT> --interactive
-# Ví dụ: cast wallet import sepoliaKey --interactive
-# Nhập private key + password khi được hỏi
-```
-
-`<TÊN_ACCOUNT>` chính là giá trị `ACCOUNT` trong `.env`.
-
-### 4.4 File `.env` (contract)
-
-```bash
-cd crowdfunding-decentralized
-cp .env.example .env
-```
-
-Điền:
+Edit `.env`:
 
 ```env
-SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/<API_KEY>
-ETHERSCAN_API_KEY=<etherscan_api_key>
-ACCOUNT=<TÊN_ACCOUNT>   # ví dụ: sepoliaKey
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/<YOUR_ALCHEMY_API_KEY>
+ETHERSCAN_API_KEY=<YOUR_ETHERSCAN_API_KEY>
+ACCOUNT=sepoliaKey
 ```
 
-> `.env` đã nằm trong `.gitignore` — **không commit**.
+`ACCOUNT` is the **keystore file name** you will create in the next section (not an Ethereum address).
+
+Load env into the current PowerShell session before `make`:
+
+```powershell
+Get-Content .env | ForEach-Object {
+  if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
+    Set-Item -Path "env:$($matches[1].Trim())" -Value $matches[2].Trim()
+  }
+}
+```
 
 ---
 
-## 5. Deploy contract lên Sepolia
+## 6. Import MetaMask key into Foundry
 
-```bash
-cd crowdfunding-decentralized
-
-# Load biến môi trường (Git Bash / WSL / macOS / Linux)
-source .env
-
-# Windows PowerShell:
-# Get-Content .env | ForEach-Object { if ($_ -match '^([^#][^=]+)=(.*)$') { Set-Item -Path "env:$($matches[1])" -Value $matches[2] } }
-
-make deploy ARGS="--network sepolia"
+```powershell
+cast wallet import sepoliaKey --interactive
 ```
 
-Lệnh thực tế (từ makefile):
+1. Paste the MetaMask **private key** when asked.
+2. Choose a **new password** (encrypts the keystore under `%USERPROFILE%\.foundry\keystores\sepoliaKey`). Remember this password — deploy will ask for it.
+3. Verify:
+
+```powershell
+cast wallet address --account sepoliaKey
+```
+
+The printed address **must** match the MetaMask account that holds Sepolia ETH.
+
+If `.env` uses another name, set `ACCOUNT=` to that exact name.
+
+---
+
+## 7. Deploy to Sepolia
+
+```powershell
+cd crowdfunding-decentralized
+# ensure .env is loaded in this shell (section 5)
+
+make deploy-sepolia
+```
+
+Enter the keystore password when prompted.
+
+**Success looks like:**
 
 ```text
-forge script script/DeployCrowdfunding.s.sol:DeployCrowdfunding \
-  --rpc-url $SEPOLIA_RPC_URL \
-  --account $ACCOUNT \
-  --broadcast \
-  --verify \
-  --etherscan-api-key $ETHERSCAN_API_KEY \
-  -vvvv
+Deployer: 0x...
+Deployed to: 0x...
+Transaction hash: 0x...
+Contract successfully verified
 ```
 
-Bạn sẽ được hỏi password của keystore (`cast wallet import`).
+Copy **Deployed to** address.
 
-Sau khi thành công:
+Open it on explorer:  
+`https://sepolia.etherscan.io/address/<DEPLOYED_ADDRESS>`
 
-- Contract address in ra console
-- Broadcast lưu tại `broadcast/DeployCrowdfunding.s.sol/11155111/`
-- Etherscan verify (nếu API key đúng)
+### Important deploy notes (learned the hard way)
 
-HelperConfig tự chọn price feed Sepolia: `0x694AA1769357215DE4FAC081bf1f309aDC325306`.
+- Prefer `make deploy-sepolia` (`forge create`) over plain `forge script` on Windows/Sepolia: Sepolia may need a **high tx gas limit** (~6M+); `forge create --gas-limit 8000000` sets a real transaction gas limit. In `forge script`, `--gas-limit` only affects **block** gas limit for simulation.
+- `--constructor-args` must be the **last** CLI flag (it consumes all following tokens).
+- Price feed used: Chainlink Sepolia ETH/USD `0x694AA1769357215DE4FAC081bf1f309aDC325306`.
 
 ---
 
-## 6. Chạy frontend
+## 8. Wire the frontend
 
-### 6.1 WalletConnect Project ID
+### 8.1 Contract address (+ ABI if you changed Solidity)
 
-1. Đăng ký [cloud.walletconnect.com](https://cloud.walletconnect.com/)
-2. Tạo project → copy **Project ID**
+Edit `crowdfunding-interface/src/contracts/contractData.ts`:
 
-### 6.2 File `.env`
+```ts
+export const contractAddr = "<DEPLOYED_ADDRESS>";
+```
 
-```bash
+If you changed contract functions, refresh ABI from `crowdfunding-decentralized/out/Crowdfunding.sol/Crowdfunding.json` after `forge build`.
+
+### 8.2 Event scan start block (Latest Donation)
+
+In `crowdfunding-interface/src/contracts/contractInteractions.ts`, update:
+
+```ts
+const CONTRACT_DEPLOY_BLOCK = <block_number_of_your_deploy>;
+```
+
+Find the block on the deploy transaction page on Etherscan (or use a block slightly before deploy). This avoids Alchemy `eth_getLogs` range limits.
+
+### 8.3 Frontend `.env`
+
+```powershell
 cd crowdfunding-interface
-cp .env.example .env
+copy .env.example .env
 ```
 
 ```env
-VITE_WALLETCONNECT_PROJECT_ID=<walletconnect_project_id>
-VITE_SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/<API_KEY>
-VITE_ALCHEMY_API_KEY=<alchemy_api_key>
+VITE_WALLETCONNECT_PROJECT_ID=<REOWN_PROJECT_ID>
+VITE_SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/<YOUR_ALCHEMY_API_KEY>
+VITE_ALCHEMY_API_KEY=<YOUR_ALCHEMY_API_KEY>
 ```
 
-| Biến | Dùng cho |
-|---|---|
-| `VITE_WALLETCONNECT_PROJECT_ID` | Web3Modal / kết nối ví |
-| `VITE_SEPOLIA_RPC_URL` | RPC mạng trong Web3Modal |
-| `VITE_ALCHEMY_API_KEY` | Đọc chain khi chưa connect ví (`AlchemyProvider("sepolia", ...)`) |
+Restart `pnpm dev` after any `.env` change (Vite reads env at startup).
 
-### 6.3 Dev server
+---
 
-```bash
+## 9. Run the website
+
+```powershell
+cd crowdfunding-interface
 pnpm dev
 ```
 
-Mở URL Vite in ra (thường `http://localhost:5173`).
+1. Open the URL printed by Vite (usually `http://localhost:5173`).
+2. MetaMask → network **Sepolia**.
+3. Click **Connect** → MetaMask.
+4. Enter an amount (≥ ~$5 USD in ETH) → **Fund** → confirm in MetaMask.
+5. Check total ETH, funders count, and Latest Donation.
+6. Confirm on Etherscan: contract balance and tx history.
 
-### 6.4 Build production (static)
-
-```bash
-pnpm build
-pnpm preview   # xem local bản build
-```
-
-Deploy thư mục `dist/` lên Vercel / Netlify / Cloudflare Pages. Nhớ set cùng các biến `VITE_*` trên hosting.
-
-Trong MetaMask: chọn mạng **Sepolia**, connect ví → donate.
+**You do not need** to keep anything running in `crowdfunding-decentralized` for the website. The contract already lives on Sepolia; the UI talks to the chain via RPC.
 
 ---
 
-## 7. Nối frontend với contract mới
+## 10. Optional: fund / withdraw via CLI
 
-Sau khi deploy Sepolia **mới**, cập nhật address trong:
+After a successful deploy (broadcast artifacts present) and `.env` loaded:
 
-`crowdfunding-interface/src/contracts/contractData.ts`
-
-```ts
-export const contractAddr = "0xYOUR_NEW_CONTRACT_ADDRESS";
-```
-
-ABI trong file đó thường giữ nguyên nếu không đổi interface contract. Nếu đổi Solidity API:
-
-```bash
+```powershell
 cd crowdfunding-decentralized
-forge build
-# Copy ABI từ out/Crowdfunding.sol/Crowdfunding.json → contractData.ts
+make fund ARGS="--network sepolia"      # if your makefile still uses ARGS; else: make fund
+make withdraw
 ```
 
----
+With the current makefile, Sepolia is the only target:
 
-## 8. Tương tác sau khi deploy
-
-Trên Sepolia (đã `source .env`):
-
-```bash
-cd crowdfunding-decentralized
-
-make fund ARGS="--network sepolia"      # fund 0.01 ETH từ account deploy
-make withdraw ARGS="--network sepolia"  # chỉ owner mới withdraw được
+```powershell
+make fund
+make withdraw
 ```
 
-Hoặc dùng UI: Connect Wallet → nhập số ETH (≥ ~$5) → Fund.
+`withdraw` only works from the **owner** keystore (`ACCOUNT`).
+
+> On Windows, `foundry-devops` path matching was patched under `lib/foundry-devops/src/DevOpsTools.sol` to accept `\` as well as `/`. Re-apply that patch if you reinstall the library.
 
 ---
 
-## 9. Checklist zero → production (testnet)
+## 11. Redeploy checklist (future you)
 
-Làm theo thứ tự:
-
-- [ ] Cài Foundry, Node, pnpm, MetaMask
-- [ ] `cd crowdfunding-decentralized && forge install && forge build && forge test`
-- [ ] (Tuỳ chọn) `anvil` + `make deploy` / `make fund` để quen flow local
-- [ ] Tạo Alchemy (RPC + API key) + Etherscan API key
-- [ ] Nạp Sepolia ETH vào ví deploy
-- [ ] `cast wallet import <ACCOUNT> --interactive`
-- [ ] Điền `crowdfunding-decentralized/.env`
-- [ ] `make deploy ARGS="--network sepolia"`
-- [ ] Copy address mới vào `contractData.ts` (nếu redeploy)
-- [ ] Tạo WalletConnect Project ID
-- [ ] Điền `crowdfunding-interface/.env`
-- [ ] `pnpm install && pnpm dev`
-- [ ] MetaMask → Sepolia → Connect → Fund thử
-- [ ] `pnpm build` → deploy `dist/` lên hosting
+- [ ] Foundry on PATH (`forge --version`)
+- [ ] `cd crowdfunding-decentralized` → install libs if `lib/` empty → `forge build && forge test`
+- [ ] Alchemy Sepolia RPC + Etherscan key + Reown Project ID
+- [ ] MetaMask Sepolia + test ETH
+- [ ] `cast wallet import <name> --interactive` → `ACCOUNT=<name>` in `.env`
+- [ ] Load `.env` into the shell
+- [ ] `make deploy-sepolia` → copy address → verify on Etherscan
+- [ ] Update `contractData.ts` address (+ deploy block in `contractInteractions.ts`)
+- [ ] Frontend `.env` → `pnpm install` → `pnpm dev`
+- [ ] Connect MetaMask (Sepolia) → Fund smoke test
 
 ---
 
-## 10. Troubleshooting
+## 12. Troubleshooting
 
-**`forge build` lỗi thiếu import / lib trống**  
-→ Chạy lại `forge install` hoặc `git submodule update --init --recursive`.
-
-**`make fund` / `withdraw` lỗi `No deployment artifacts were found for specified chain` (Windows)**  
-→ Bug path separator của `foundry-devops` (`/` vs `\`). Repo đã patch `lib/foundry-devops/src/DevOpsTools.sol` để nhận cả hai. Nếu vẫn lỗi: chạy `make deploy` trước, hoặc fund tay bằng address từ log deploy.
-
-**`make: command not found` (Windows)**  
-→ Dùng Git Bash/WSL, hoặc chạy thẳng lệnh `forge script ...` như trong makefile.
-
-**Deploy Sepolia hỏi password / không tìm thấy account**  
-→ Kiểm tra `ACCOUNT` trùng tên `cast wallet import`. Xem list: `cast wallet list`.
-
-**Verify Etherscan fail**  
-→ Đợi vài giây rồi verify tay, hoặc chạy lại script verify; kiểm tra `ETHERSCAN_API_KEY`.
-
-**Frontend không load balance / lỗi Alchemy**  
-→ Thiếu hoặc sai `VITE_ALCHEMY_API_KEY`. Restart `pnpm dev` sau khi sửa `.env` (Vite chỉ đọc env lúc start).
-
-**WalletConnect / modal lỗi**  
-→ Thiếu `VITE_WALLETCONNECT_PROJECT_ID`, hoặc Project ID sai.
-
-**Fund bị revert `InsufficientFunding`**  
-→ Số ETH quy đổi USD (qua Chainlink) < $5. Tăng số ETH gửi.
-
-**Withdraw revert**  
-→ Chỉ `owner` (ví đã deploy contract) mới gọi được.
-
-**Make deploy Sepolia nhưng vẫn dùng localhost**  
-→ Phải truyền đúng: `ARGS="--network sepolia"` (makefile detect chuỗi `--network sepolia`).
+| Symptom | Fix |
+|---|---|
+| `forge` not recognized | Add `%USERPROFILE%\.foundry\bin` to User PATH; new terminal |
+| `lib/` missing imports | Re-run `forge install …` commands in section 4 |
+| `Failed to decode private key` with `cast wallet address 0xname` | Use `cast wallet address --account name` (no fake `0x` prefix as “private key”) |
+| Deploy tx status 0 / out of gas | Use `make deploy-sepolia` with high `--gas-limit` (already 8_000_000) |
+| Constructor argument count mismatch | Put `--constructor-args` **last** |
+| Latest Donation empty after F5 | Alchemy log range limits — ensure chunked query + correct `CONTRACT_DEPLOY_BLOCK` |
+| Web3Modal / connect broken | Set `VITE_WALLETCONNECT_PROJECT_ID`; restart Vite |
+| Frontend balance blank | Set `VITE_ALCHEMY_API_KEY` + RPC URL; restart Vite |
 
 ---
 
-## Cấu trúc nhanh
+## Project layout
 
 ```text
 crowdfunding-web3/
-├── README.md                          ← file này
-├── crowdfunding-decentralized/        # Foundry
+├── README.md                 ← English (default)
+├── README.vi.md              ← Vietnamese
+├── crowdfunding-decentralized/
 │   ├── src/Crowdfunding.sol
-│   ├── script/DeployCrowdfunding.s.sol
-│   ├── script/HelperConfig.s.sol
-│   ├── script/Interactions.s.sol
+│   ├── script/
 │   ├── test/
-│   ├── makefile                       # deploy | fund | withdraw
+│   ├── makefile              ← deploy-sepolia | fund | withdraw
 │   └── .env.example
-└── crowdfunding-interface/            # Vite React
-    ├── src/App.tsx                    # Web3Modal + Sepolia
-    ├── src/contracts/contractData.ts  # address + ABI
+└── crowdfunding-interface/
+    ├── src/contracts/contractData.ts
+    ├── src/contracts/contractInteractions.ts
     └── .env.example
 ```
 
 ## Stack
 
-- **Solidity 0.8.26**, Foundry, OpenZeppelin Ownable, Chainlink AggregatorV3
-- **React 18**, TypeScript, Vite, Tailwind, ethers v6, `@web3modal/ethers`
-- **Network production (testnet):** Ethereum Sepolia (`11155111`)
+- Solidity `0.8.26`, Foundry, OpenZeppelin Ownable, Chainlink AggregatorV3  
+- React 18, TypeScript, Vite, Tailwind, ethers v6, `@web3modal/ethers`  
+- Network: Ethereum Sepolia (`11155111`)
