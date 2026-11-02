@@ -14,11 +14,12 @@ const LatestDonation = ({ isLoading, latestEvents }: LatestDonationProps) => {
       <h2 className="font-semibold">Latest Donation</h2>
       <div className="mt-4 space-y-3">
         {isLoading && <LoaderCircle className="animate-spin" />}
-        {!isLoading && !latestEvents && (
+        {!isLoading && (!latestEvents || latestEvents.length === 0) && (
           <p className="text-sm">No data to show.</p>
         )}
         {!isLoading &&
           latestEvents &&
+          latestEvents.length > 0 &&
           latestEvents.map((item) => (
             <Card
               key={item.txHash}

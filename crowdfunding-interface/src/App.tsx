@@ -61,7 +61,7 @@ function App() {
         const events = await getFundedEvents(provider);
         setCrowdfBalance(balance);
         setFunders(funders);
-        if (events) setLatestEvents(events);
+        setLatestEvents(events ?? []);
       }
     } finally {
       setIsLoading(false);

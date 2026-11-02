@@ -1,5 +1,4 @@
-// Điền address sau khi: make deploy ARGS="--network sepolia"
-export const contractAddr = "";
+export const contractAddr = "0xaF82203926E6c7D28ac30fDf98C98F47F925B5d2";
 
 export const contractABI = [
   {

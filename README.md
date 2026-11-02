@@ -68,14 +68,17 @@ Thư mục `lib/` (forge-std, chainlink, openzeppelin, foundry-devops) là **git
 ```bash
 cd crowdfunding-decentralized
 
-# Cài libs (lần đầu hoặc sau khi clone mới)
-forge install
-
-# Hoặc nếu submodule trống:
-git submodule update --init --recursive
+# Nếu thư mục lib/ trống (submodule chưa pull), cài lại dependencies:
+forge install foundry-rs/forge-std@v1.9.2 --no-git --shallow
+forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-git --shallow
+forge install Cyfrin/foundry-devops@0.2.2 --no-git --shallow
+forge install chainlink=smartcontractkit/chainlink-brownie-contracts@1.1.1 --no-git --shallow
 
 forge build
+forge test
 ```
+
+> Dùng `chainlink-brownie-contracts` (nhẹ) thay vì monorepo `smartcontractkit/chainlink` đầy đủ; remapping `@chainlink/=lib/chainlink/` vẫn khớp import hiện tại.
 
 ### Frontend
 
@@ -327,6 +330,9 @@ Làm theo thứ tự:
 
 **`forge build` lỗi thiếu import / lib trống**  
 → Chạy lại `forge install` hoặc `git submodule update --init --recursive`.
+
+**`make fund` / `withdraw` lỗi `No deployment artifacts were found for specified chain` (Windows)**  
+→ Bug path separator của `foundry-devops` (`/` vs `\`). Repo đã patch `lib/foundry-devops/src/DevOpsTools.sol` để nhận cả hai. Nếu vẫn lỗi: chạy `make deploy` trước, hoặc fund tay bằng address từ log deploy.
 
 **`make: command not found` (Windows)**  
 → Dùng Git Bash/WSL, hoặc chạy thẳng lệnh `forge script ...` như trong makefile.
