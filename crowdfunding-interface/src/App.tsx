@@ -1,5 +1,3 @@
-import { LoaderCircle } from "lucide-react";
-import Card from "./components/Card";
 import { MainLayout } from "./layouts/MainLayout";
 import { createWeb3Modal, defaultConfig } from "@web3modal/ethers/react";
 import useEthers from "./hooks/useEthers";
@@ -13,6 +11,10 @@ import { contractAddr } from "./contracts/contractData";
 import FundCard from "./components/FundCard";
 import LatestDonation from "./components/LatestDonation";
 import { FundedEvent } from "./lib/type";
+import Hero from "./components/Hero";
+import StatsRow from "./components/StatsRow";
+import ContactSection from "./components/ContactSection";
+import { config } from "./lib/config";
 
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
 
@@ -25,10 +27,10 @@ const sepolia = {
 };
 
 const metadata = {
-  name: "Crowfunding",
-  description: "Website help people donation for me",
-  url: "https://mywebsite.com", // custom your domain here
-  icons: ["https://avatars.mywebsite.com/"], //custom your logo here
+  name: config.brand,
+  description: config.tagline,
+  url: "https://github.com/nvminh162",
+  icons: [config.avatarUrl],
 };
 
 const ethersConfig = defaultConfig({
@@ -43,6 +45,11 @@ createWeb3Modal({
   chains: [sepolia],
   projectId,
   enableAnalytics: true,
+  themeMode: "light",
+  themeVariables: {
+    "--w3m-accent": "#171715",
+    "--w3m-border-radius-master": "0px",
+  },
 });
 
 function App() {
@@ -57,10 +64,10 @@ function App() {
     try {
       if (provider) {
         const balance = await getContractBalance(provider, contractAddr);
-        const funders = await getFundersLength(provider);
+        const nextFunders = await getFundersLength(provider);
         const events = await getFundedEvents(provider);
         setCrowdfBalance(balance);
-        setFunders(funders);
+        setFunders(nextFunders);
         setLatestEvents(events ?? []);
       }
     } finally {
@@ -74,30 +81,28 @@ function App() {
 
   return (
     <MainLayout>
-      <div className="flex gap-4 mt-4 pb-4 border-b">
-        <div className="w-[30%] space-y-4">
-          <Card className="space-y-2">
-            <h2 className="font-semibold text-sm">Total amount funding</h2>
-            {isLoading && <LoaderCircle className="animate-spin" />}
-            {!isLoading && crowdfBalance !== null && (
-              <p className="font-bold text-2xl">
-                {crowdfBalance}
-                <span className="font-semibold text-base">ETH</span>
-              </p>
-            )}
-          </Card>
-          <Card className="space-y-2">
-            <h2 className="font-semibold text-sm">Funders</h2>
-            {isLoading && <LoaderCircle className="animate-spin" />}
-            {!isLoading && funders !== null && (
-              <p className="font-bold text-2xl">{funders}</p>
-            )}
-          </Card>
-        </div>
-        <FundCard fetchContractInfor={fetchCrowfundingInfor} />
-      </div>
+      <Hero />
 
-      <LatestDonation isLoading={isLoading} latestEvents={latestEvents} />
+      <div className="mx-auto max-w-6xl px-4 md:px-6">
+        <section className="grid gap-6 border-b border-ink-200 py-14 md:grid-cols-[0.85fr_1.15fr] md:gap-8 md:py-16">
+          <StatsRow
+            crowdfBalance={crowdfBalance}
+            funders={funders}
+            isLoading={isLoading}
+          />
+          <FundCard fetchContractInfor={fetchCrowfundingInfor} />
+        </section>
+
+        <LatestDonation isLoading={isLoading} latestEvents={latestEvents} />
+        <ContactSection />
+
+        <footer className="flex flex-col gap-2 border-t border-ink-200 py-8 text-xs text-ink-400 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            © {new Date().getFullYear()} {config.brand}. Sepolia only.
+          </p>
+          <p className="tracking-[0.18em] uppercase">Built with Foundry + Vite</p>
+        </footer>
+      </div>
     </MainLayout>
   );
 }

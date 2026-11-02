@@ -1,7 +1,6 @@
 import { FundedEvent } from "@/lib/type";
 import { shortenAddress } from "@/lib/utils";
 import { ExternalLink, LoaderCircle } from "lucide-react";
-import Card from "./Card";
 
 interface LatestDonationProps {
   isLoading: boolean;
@@ -10,52 +9,83 @@ interface LatestDonationProps {
 
 const LatestDonation = ({ isLoading, latestEvents }: LatestDonationProps) => {
   return (
-    <div className="py-4">
-      <h2 className="font-semibold">Latest Donation</h2>
-      <div className="mt-4 space-y-3">
-        {isLoading && <LoaderCircle className="animate-spin" />}
-        {!isLoading && (!latestEvents || latestEvents.length === 0) && (
-          <p className="text-sm">No data to show.</p>
+    <section id="activity" className="scroll-mt-24 py-16 md:py-20">
+      <div className="mb-8 flex items-end justify-between gap-4 border-b border-ink-200 pb-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.28em] text-ink-400">
+            On-chain
+          </p>
+          <h2 className="mt-2 font-display text-3xl font-bold tracking-tight text-ink-950 md:text-4xl">
+            Latest donations
+          </h2>
+        </div>
+      </div>
+
+      <div className="space-y-0">
+        {isLoading && (
+          <div className="flex items-center gap-3 py-8 text-ink-400">
+            <LoaderCircle className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading events…</span>
+          </div>
         )}
+
+        {!isLoading && (!latestEvents || latestEvents.length === 0) && (
+          <p className="py-8 text-sm text-ink-400">No donations yet.</p>
+        )}
+
         {!isLoading &&
           latestEvents &&
           latestEvents.length > 0 &&
           latestEvents.map((item) => (
-            <Card
+            <div
               key={item.txHash}
-              className="shadow-none flex justify-between gap-2 items-center hover:shadow-md transition-all"
+              className="group grid grid-cols-1 items-center gap-3 border-b border-ink-200 py-5 transition hover:bg-ink-100/60 sm:grid-cols-[1.2fr_0.6fr_1fr] sm:gap-6"
             >
               <div>
-                <span className="text-sm">Funder:</span>
-
+                <p className="text-[11px] uppercase tracking-[0.2em] text-ink-400">
+                  Funder
+                </p>
                 <a
                   target="_blank"
+                  rel="noreferrer"
                   href={`https://sepolia.etherscan.io/address/${item.funder}`}
-                  className="flex items-center gap-1 hover:underline transition-all"
+                  className="mt-1 inline-flex items-center gap-1.5 font-medium text-ink-900 transition group-hover:underline"
                 >
                   {shortenAddress(item.funder)}
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="h-3.5 w-3.5 text-ink-400" />
                 </a>
               </div>
-              <div className="flex flex-col items-center">
-                <span className="text-sm">Value:</span>
-                <p>{item.value} ETH</p>
-              </div>
+
               <div>
-                <span className="text-sm">Transaction:</span>
+                <p className="text-[11px] uppercase tracking-[0.2em] text-ink-400">
+                  Value
+                </p>
+                <p className="mt-1 font-display text-xl font-semibold text-ink-950">
+                  {item.value}{" "}
+                  <span className="text-sm font-sans font-normal text-ink-400">
+                    ETH
+                  </span>
+                </p>
+              </div>
+
+              <div className="sm:text-right">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-ink-400">
+                  Transaction
+                </p>
                 <a
                   target="_blank"
+                  rel="noreferrer"
                   href={`https://sepolia.etherscan.io/tx/${item.txHash}`}
-                  className="flex items-center gap-1 hover:underline transition-all"
+                  className="mt-1 inline-flex items-center gap-1.5 text-sm text-ink-500 transition hover:text-ink-900 sm:justify-end"
                 >
                   {shortenAddress(item.txHash)}
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               </div>
-            </Card>
+            </div>
           ))}
       </div>
-    </div>
+    </section>
   );
 };
 
