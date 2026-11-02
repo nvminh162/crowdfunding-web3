@@ -139,7 +139,9 @@ async function queryFundedLogsViaEtherscan(
     .map((log: { topics: string[]; data: string; transactionHash: string; blockNumber: string }) => {
       try {
         const funder = `0x${log.topics[1].slice(26)}`;
-        const [value] = coder.decode(["uint256"], log.data) as [bigint];
+        const [value] = coder.decode(["uint256"], log.data) as unknown as [
+          bigint,
+        ];
         return {
           funder,
           value: formatEther(value),
@@ -257,7 +259,9 @@ async function queryWithdrawnLogsViaEtherscan(
         blockNumber: string;
       }) => {
         try {
-          const [value] = coder.decode(["uint256"], log.data) as [bigint];
+          const [value] = coder.decode(["uint256"], log.data) as unknown as [
+            bigint,
+          ];
           return {
             value: formatEther(value),
             txHash: log.transactionHash,
