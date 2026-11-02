@@ -46,6 +46,9 @@ const Header = () => {
           <a href="#activity" className="transition hover:text-ink-900">
             Activity
           </a>
+          <a href="#withdrawals" className="transition hover:text-ink-900">
+            Withdrawals
+          </a>
           <a href="#contact" className="transition hover:text-ink-900">
             Contact
           </a>

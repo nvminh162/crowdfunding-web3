@@ -6,11 +6,13 @@ import {
   getContractBalance,
   getFundedEvents,
   getFundersLength,
+  getWithdrawnEvents,
 } from "./contracts/contractInteractions";
 import { contractAddr } from "./contracts/contractData";
 import FundCard from "./components/FundCard";
 import LatestDonation from "./components/LatestDonation";
-import { FundedEvent } from "./lib/type";
+import LatestWithdrawal from "./components/LatestWithdrawal";
+import { FundedEvent, WithdrawnEvent } from "./lib/type";
 import Hero from "./components/Hero";
 import StatsRow from "./components/StatsRow";
 import ContactSection from "./components/ContactSection";
@@ -58,6 +60,9 @@ function App() {
   const [crowdfBalance, setCrowdfBalance] = useState<string | null>(null);
   const [funders, setFunders] = useState<number | null>(null);
   const [latestEvents, setLatestEvents] = useState<FundedEvent[] | null>(null);
+  const [latestWithdrawals, setLatestWithdrawals] = useState<
+    WithdrawnEvent[] | null
+  >(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchCrowfundingInfor = async () => {
@@ -66,10 +71,14 @@ function App() {
       if (provider) {
         const balance = await getContractBalance(provider, contractAddr);
         const nextFunders = await getFundersLength(provider);
-        const events = await getFundedEvents(provider);
+        const [events, withdrawals] = await Promise.all([
+          getFundedEvents(provider),
+          getWithdrawnEvents(provider),
+        ]);
         setCrowdfBalance(balance);
         setFunders(nextFunders);
         setLatestEvents(events ?? []);
+        setLatestWithdrawals(withdrawals ?? []);
       }
     } finally {
       setIsLoading(false);
@@ -101,6 +110,10 @@ function App() {
         </section>
 
         <LatestDonation isLoading={isLoading} latestEvents={latestEvents} />
+        <LatestWithdrawal
+          isLoading={isLoading}
+          latestWithdrawals={latestWithdrawals}
+        />
         <ContactSection />
 
         <footer className="flex flex-col gap-2 border-t border-ink-200 py-8 text-xs text-ink-400 sm:flex-row sm:items-center sm:justify-between">

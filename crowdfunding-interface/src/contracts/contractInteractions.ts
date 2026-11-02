@@ -10,7 +10,7 @@ import {
   TransactionResponse,
 } from "ethers";
 import { contractABI, contractAddr } from "./contractData";
-import { FundedEvent } from "@/lib/type";
+import { FundedEvent, WithdrawnEvent } from "@/lib/type";
 
 type AnyProvider = BrowserProvider | AlchemyProvider;
 
@@ -18,6 +18,7 @@ const CONTRACT_DEPLOY_BLOCK = 12_047_650;
 const LOG_CHUNK_SIZE = 10;
 const MAX_CHUNKS = 400; // ~4k blocks walking backwards
 const FUNDED_TOPIC = id("Funded(address,uint256)");
+const WITHDRAWN_TOPIC = id("Withdrawn(uint256)");
 
 export const getContractBalance = async (
   ethersProvider: AnyProvider,
@@ -180,6 +181,149 @@ export const getFundedEvents = async (ethersProvider: AnyProvider) => {
     );
   } catch (error) {
     console.error("getFundedEvents failed:", error);
+    return [];
+  }
+};
+
+async function queryWithdrawnLogsViaRpc(
+  contract: Contract,
+  fromBlock: number,
+  toBlock: number
+) {
+  const filter = contract.filters.Withdrawn();
+
+  try {
+    return await contract.queryFilter(filter, fromBlock, toBlock);
+  } catch (error) {
+    console.warn("Wide withdraw log query failed, chunking backwards:", error);
+  }
+
+  const logs = [];
+  let end = toBlock;
+  let chunks = 0;
+
+  while (end >= fromBlock && chunks < MAX_CHUNKS) {
+    const start = Math.max(fromBlock, end - LOG_CHUNK_SIZE);
+    try {
+      const chunk = await contract.queryFilter(filter, start, end);
+      if (chunk.length) logs.push(...chunk);
+    } catch (chunkError) {
+      console.warn(`Withdraw log chunk ${start}-${end} failed:`, chunkError);
+    }
+    if (start === fromBlock) break;
+    end = start - 1;
+    chunks += 1;
+  }
+
+  return logs;
+}
+
+async function queryWithdrawnLogsViaEtherscan(
+  fromBlock: number,
+  toBlock: number | "latest"
+): Promise<WithdrawnEvent[]> {
+  const apiKey = import.meta.env.VITE_ETHERSCAN_API_KEY;
+  if (!apiKey) return [];
+
+  const params = new URLSearchParams({
+    module: "logs",
+    action: "getLogs",
+    address: contractAddr,
+    fromBlock: String(fromBlock),
+    toBlock: String(toBlock),
+    topic0: WITHDRAWN_TOPIC,
+    apikey: apiKey,
+  });
+
+  const url = `https://api.etherscan.io/v2/api?chainid=11155111&${params.toString()}`;
+  const res = await fetch(url);
+  const json = await res.json();
+
+  if (json.status !== "1" || !Array.isArray(json.result)) {
+    console.warn(
+      "Etherscan withdraw logs empty/failed:",
+      json.message || json
+    );
+    return [];
+  }
+
+  const coder = AbiCoder.defaultAbiCoder();
+
+  return json.result
+    .map(
+      (log: {
+        data: string;
+        transactionHash: string;
+        blockNumber: string;
+      }) => {
+        try {
+          const [value] = coder.decode(["uint256"], log.data) as [bigint];
+          return {
+            value: formatEther(value),
+            txHash: log.transactionHash,
+            blockNumber: parseInt(log.blockNumber, 16),
+          } satisfies WithdrawnEvent;
+        } catch {
+          return null;
+        }
+      }
+    )
+    .filter((e: WithdrawnEvent | null): e is WithdrawnEvent => e !== null)
+    .sort(
+      (a: WithdrawnEvent, b: WithdrawnEvent) => b.blockNumber - a.blockNumber
+    );
+}
+
+function mapWithdrawnLogs(
+  events: Array<{
+    args?: unknown;
+    transactionHash: string;
+    blockNumber: number;
+  }>
+): WithdrawnEvent[] {
+  return events
+    .map((currentEvent) => {
+      const args = currentEvent.args as unknown as [bigint] | undefined | null;
+      if (!args || args[0] === undefined) return null;
+      return {
+        value: formatEther(args[0]),
+        txHash: currentEvent.transactionHash,
+        blockNumber: currentEvent.blockNumber,
+      };
+    })
+    .filter((e): e is WithdrawnEvent => e !== null)
+    .sort((a, b) => b.blockNumber - a.blockNumber);
+}
+
+export const getWithdrawnEvents = async (ethersProvider: AnyProvider) => {
+  const fromBlock = CONTRACT_DEPLOY_BLOCK;
+
+  try {
+    const viaExplorer = await queryWithdrawnLogsViaEtherscan(
+      fromBlock,
+      "latest"
+    );
+    if (viaExplorer.length > 0) return viaExplorer;
+  } catch (error) {
+    console.warn("Etherscan V2 withdraw logs failed, trying RPC:", error);
+  }
+
+  try {
+    const crowdfundingContract = new Contract(
+      contractAddr,
+      contractABI,
+      ethersProvider
+    );
+    const latestBlock = await ethersProvider.getBlockNumber();
+    return mapWithdrawnLogs(
+      await queryWithdrawnLogsViaRpc(
+        crowdfundingContract,
+        Math.min(fromBlock, latestBlock),
+        latestBlock
+      )
+    );
+  } catch (error) {
+    console.error("getWithdrawnEvents failed:", error);
     return [];
   }
 };
