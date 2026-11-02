@@ -14,6 +14,7 @@ import { FundedEvent } from "./lib/type";
 import Hero from "./components/Hero";
 import StatsRow from "./components/StatsRow";
 import ContactSection from "./components/ContactSection";
+import OwnerWithdraw from "./components/OwnerWithdraw";
 import { config } from "./lib/config";
 
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
@@ -84,13 +85,19 @@ function App() {
       <Hero />
 
       <div className="mx-auto max-w-6xl px-4 md:px-6">
-        <section className="grid gap-6 border-b border-ink-200 py-14 md:grid-cols-[0.85fr_1.15fr] md:gap-8 md:py-16">
-          <StatsRow
+        <section className="border-b border-ink-200 py-14 md:py-16">
+          <div className="grid gap-6 md:grid-cols-[0.85fr_1.15fr] md:gap-8">
+            <StatsRow
+              crowdfBalance={crowdfBalance}
+              funders={funders}
+              isLoading={isLoading}
+            />
+            <FundCard fetchContractInfor={fetchCrowfundingInfor} />
+          </div>
+          <OwnerWithdraw
             crowdfBalance={crowdfBalance}
-            funders={funders}
-            isLoading={isLoading}
+            fetchContractInfor={fetchCrowfundingInfor}
           />
-          <FundCard fetchContractInfor={fetchCrowfundingInfor} />
         </section>
 
         <LatestDonation isLoading={isLoading} latestEvents={latestEvents} />

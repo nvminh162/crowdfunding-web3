@@ -184,6 +184,20 @@ export const getFundedEvents = async (ethersProvider: AnyProvider) => {
   }
 };
 
+export const getContractOwner = async (ethersProvider: AnyProvider) => {
+  try {
+    const crowdfundingContract = new Contract(
+      contractAddr,
+      contractABI,
+      ethersProvider
+    );
+    const owner = await crowdfundingContract.owner();
+    return String(owner);
+  } catch {
+    return null;
+  }
+};
+
 export const handleFundToContract = async (
   signer: JsonRpcSigner,
   value: number
@@ -197,6 +211,20 @@ export const handleFundToContract = async (
     const tx: TransactionResponse = await crowdfundingContract.fund({
       value: parseEther(String(value)),
     });
+    return tx;
+  } catch {
+    return null;
+  }
+};
+
+export const handleWithdrawFromContract = async (signer: JsonRpcSigner) => {
+  try {
+    const crowdfundingContract = new Contract(
+      contractAddr,
+      contractABI,
+      signer
+    );
+    const tx: TransactionResponse = await crowdfundingContract.withdraw();
     return tx;
   } catch {
     return null;
