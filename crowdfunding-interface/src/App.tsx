@@ -100,7 +100,7 @@ function App() {
           <p>
             © {new Date().getFullYear()} {config.brand}. Sepolia only.
           </p>
-          <p className="tracking-[0.18em] uppercase">Built with Foundry + Vite</p>
+          <p className="tracking-[0.18em] uppercase">From Nguyen Van Minh (@nvminh162) with ❤️</p>
         </footer>
       </div>
     </MainLayout>
