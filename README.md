@@ -1,4 +1,4 @@
-# Crowdfunding Web3
+# Crowdfunding Web3 - Dự Án Nuôi Minh
 
 > **Languages:** English (this file) · [Tiếng Việt](./README.vi.md)
 
